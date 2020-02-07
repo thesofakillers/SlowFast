@@ -5,6 +5,7 @@ from slowfast.models import build_model
 import slowfast.utils.distributed as du
 import slowfast.utils.misc as misc
 import slowfast.utils.checkpoint as cu
+from slowfast.datasets import loader
 
 logger = logging.get_logger(__name__)
 
@@ -29,10 +30,12 @@ def infer(cfg):
     else:
         raise FileNotFoundError("Model weights file could not be found")
 
-    perform_inference(model, cfg)
+    inference_loader = loader.construct_loader(cfg, "inference")
+
+    perform_inference(inference_loader, model, cfg)
 
 
-def perform_inference(model, cfg):
+def perform_inference(inference_loader, model, cfg):
     """
     For detection:
     Perform fully-convolutional action detections on the full incoming frames
