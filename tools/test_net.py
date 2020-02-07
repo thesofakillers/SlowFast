@@ -67,7 +67,8 @@ def perform_test(test_loader, model, test_meter, cfg):
 
             if cfg.NUM_GPUS > 1:
                 preds = torch.cat(du.all_gather_unaligned(preds), dim=0)
-                ori_boxes = torch.cat(du.all_gather_unaligned(ori_boxes), dim=0)
+                ori_boxes = torch.cat(
+                    du.all_gather_unaligned(ori_boxes), dim=0)
                 metadata = torch.cat(du.all_gather_unaligned(metadata), dim=0)
 
             test_meter.iter_toc()
