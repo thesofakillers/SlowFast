@@ -13,11 +13,13 @@ from slowfast.config.defaults import get_cfg
 
 from test_net import test
 from train_net import train
+from inference_net import infer
+from sandbox_net import experiment
 
 
 def parse_args():
     """
-    Parse the following arguments for the video training and testing pipeline.
+    Parse the following arguments for the video training, testing or inference.
     Args:
         shard_id (int): shard id for the current machine. Starts from 0 to
             num_shards - 1. If single machine is used, then set shard id to 0.
@@ -31,7 +33,7 @@ def parse_args():
             overwrites the config loaded from file.
         """
     parser = argparse.ArgumentParser(
-        description="Provide SlowFast video training and testing pipeline."
+        description="Provide SlowFast video training, testing and inference pipeline."
     )
     parser.add_argument(
         "--shard_id",
@@ -49,6 +51,12 @@ def parse_args():
         "--init_method",
         help="Initialization method, includes TCP or shared file-system",
         default="tcp://localhost:9999",
+        type=str,
+    )
+    parser.add_argument(
+        "--input_video",
+        help="Path to the input video file for inference",
+        default="video.mp4",
         type=str,
     )
     parser.add_argument(
@@ -93,6 +101,8 @@ def load_config(args):
         cfg.RNG_SEED = args.rng_seed
     if hasattr(args, "output_dir"):
         cfg.OUTPUT_DIR = args.output_dir
+    if hasattr(args, "input_video"):
+        cfg.INFERENCE.INPUT_VIDEO = args.input_video
 
     # Create the checkpoint dir.
     cu.make_checkpoint_dir(cfg.OUTPUT_DIR)
@@ -101,50 +111,38 @@ def load_config(args):
 
 def main():
     """
-    Main function to spawn the train and test process.
+    Main function to spawn the train, test or inference processes.
     """
     args = parse_args()
     cfg = load_config(args)
 
-    # Perform training.
+    # determine process
     if cfg.TRAIN.ENABLE:
-        if cfg.NUM_GPUS > 1:
-            torch.multiprocessing.spawn(
-                mpu.run,
-                nprocs=cfg.NUM_GPUS,
-                args=(
-                    cfg.NUM_GPUS,
-                    train,
-                    args.init_method,
-                    cfg.SHARD_ID,
-                    cfg.NUM_SHARDS,
-                    cfg.DIST_BACKEND,
-                    cfg,
-                ),
-                daemon=False,
-            )
-        else:
-            train(cfg=cfg)
-
-    # Perform multi-clip testing.
+        func = train
     if cfg.TEST.ENABLE:
-        if cfg.NUM_GPUS > 1:
-            torch.multiprocessing.spawn(
-                mpu.run,
-                nprocs=cfg.NUM_GPUS,
-                args=(
-                    cfg.NUM_GPUS,
-                    test,
-                    args.init_method,
-                    cfg.SHARD_ID,
-                    cfg.NUM_SHARDS,
-                    cfg.DIST_BACKEND,
-                    cfg,
-                ),
-                daemon=False,
-            )
-        else:
-            test(cfg=cfg)
+        func = test
+    if cfg.INFERENCE.ENABLE:
+        func = infer
+    if cfg.SANDBOX.ENABLE:
+        func = experiment
+    # determine if several GPUs are being used and run the process accordingly
+    if cfg.NUM_GPUS > 1:
+        torch.multiprocessing.spawn(
+            mpu.run,
+            nprocs=cfg.NUM_GPUS,
+            args=(
+                cfg.NUM_GPUS,
+                func,
+                args.init_method,
+                cfg.SHARD_ID,
+                cfg.NUM_SHARDS,
+                cfg.DIST_BACKEND,
+                cfg,
+            ),
+            daemon=False,
+        )
+    else:
+        func(cfg=cfg)
 
 
 if __name__ == "__main__":
