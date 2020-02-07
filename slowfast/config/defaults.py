@@ -92,6 +92,36 @@ _C.TEST.NUM_SPATIAL_CROPS = 3
 _C.TEST.CHECKPOINT_TYPE = "pytorch"
 
 
+# ---------------------------------------------------------------------------- #
+# Inference options
+# ---------------------------------------------------------------------------- #
+
+_C.INFERENCE = CfgNode()
+
+# If True, perform inference
+_C.INFERENCE.ENABLE = True
+
+# path to input video file
+_C.INFERENCE.INPUT_VIDEO = "video.mp4"
+
+# Total mini-batch size
+_C.INFERENCE.BATCH_SIZE = 8
+
+# Path to the weights.
+_C.INFERENCE.WEIGHTS_FILE_PATH = ""
+
+# Number of clips to sample from a video uniformly for aggregating the
+# prediction results.
+_C.INFERENCE.NUM_ENSEMBLE_VIEWS = 10
+
+# Number of crops to sample from a frame spatially for aggregating the
+# prediction results.
+_C.INFERENCE.NUM_SPATIAL_CROPS = 3
+
+# Weight types include `caffe2` or `pytorch`.
+_C.INFERENCE.WEIGHTS_TYPE = "pytorch"
+
+
 # -----------------------------------------------------------------------------
 # ResNet options
 # -----------------------------------------------------------------------------
